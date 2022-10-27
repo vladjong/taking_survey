@@ -15,6 +15,7 @@ import (
 type Client struct {
 	Client         http.Client
 	NumberQuestion int
+	Answers        map[string]string
 }
 
 func main() {
@@ -28,8 +29,8 @@ func main() {
 	for {
 		client.takingSurvey()
 		client.NumberQuestion += 1
-		return
 	}
+	fmt.Println(client.Answers)
 }
 
 func InitConfig() error {
@@ -43,6 +44,7 @@ func NewClinet() *Client {
 	return &Client{
 		Client:         http.Client{Jar: cookieJar},
 		NumberQuestion: 1,
+		Answers:        make(map[string]string),
 	}
 }
 
@@ -90,27 +92,58 @@ func (c *Client) takingSurvey() {
 	if err != nil {
 		log.Fatalf("error initializing goquery response body: %s", err.Error())
 	}
-	fmt.Println(doc.Html())
-	fmt.Println("\\n")
-	form := doc.Find("form").First()
-	fmt.Println(form.Text())
+	form := doc.Find("form")
 	form.Find("p").Each(func(i int, s *goquery.Selection) {
-		s.Find("select").Each(func(i int, s *goquery.Selection) {
-			if name, _ := s.Attr("name"); name == "" {
+		c.parseSelect(s)
+		c.parseType(s)
+	})
+	fmt.Println(c.Answers)
+}
+
+func (c *Client) parseSelect(s *goquery.Selection) {
+	s.Find("select").Each(func(i int, s *goquery.Selection) {
+		name, ok := s.Attr("name")
+		if name == "" || !ok {
+			return
+		}
+		var temp string
+		s.Find("option").Each(func(i int, s *goquery.Selection) {
+			value, ok := s.Attr("value")
+			if !ok {
 				return
 			}
-			s.Find("option").Each(func(i int, s *goquery.Selection) {
-				value, ok := s.Attr("value")
-				if !ok {
-					return
-				}
-				fmt.Println(value)
-				// name, _ := s.Attr("name")
-				// if name == "" {
-				// 	return
-				// }
-				// fmt.Println(s.Text())
-			})
+			maxString(value, &temp)
 		})
+		c.Answers[name] = temp
 	})
+}
+
+func (c *Client) parseType(s *goquery.Selection) {
+	var temp string
+	s.Find("input").Each(func(i int, s *goquery.Selection) {
+		name, ok := s.Attr("name")
+		if name == "" || !ok {
+			return
+		}
+		typ, ok := s.Attr("type")
+		if !ok {
+			return
+		}
+		if typ == "radio" {
+			value, ok := s.Attr("value")
+			if !ok {
+				return
+			}
+			maxString(value, &temp)
+			c.Answers[name] = temp
+		} else if typ == "text" {
+			c.Answers[name] = "text"
+		}
+	})
+}
+
+func maxString(value string, temp *string) {
+	if len(value) > len(*temp) {
+		*temp = value
+	}
 }
