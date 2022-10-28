@@ -12,6 +12,4 @@ func main() {
 		log.Fatalf("error initializing configs: %s", err.Error())
 	}
 	workerpool.StartWorkerpool()
-	// client := client.NewClinet(context.Background())
-	// client.Run()
 }

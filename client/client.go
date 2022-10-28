@@ -14,6 +14,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/spf13/viper"
 	"github.com/vladjong/taking_survey/config"
+	"golang.org/x/time/rate"
 )
 
 type Client struct {
@@ -22,6 +23,7 @@ type Client struct {
 	Context        context.Context
 	Cookies        []*http.Cookie
 	Headers        map[string]string
+	Ratelimiter    *rate.Limiter
 }
 
 func NewClinet(ctx context.Context) *Client {
@@ -33,6 +35,7 @@ func NewClinet(ctx context.Context) *Client {
 		NumberQuestion: 1,
 		Context:        ctx,
 		Headers:        headers,
+		Ratelimiter:    rate.NewLimiter(rate.Limit(viper.GetInt("rps")), 1),
 	}
 }
 
@@ -147,10 +150,12 @@ func (c *Client) getPage(method, siteURL string, formDatas map[string]string, ti
 		reqTimeout = time.Duration(timeout) * time.Second
 	}
 	httpClient := &http.Client{
-		Transport:     http.DefaultTransport,
-		CheckRedirect: nil,
-		Jar:           nil,
-		Timeout:       reqTimeout,
+		Transport: http.DefaultTransport,
+		Timeout:   reqTimeout,
+	}
+	err = c.Ratelimiter.Wait(c.Context)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to rps: %w", err)
 	}
 	resp, err := httpClient.Do(req)
 	if err != nil {

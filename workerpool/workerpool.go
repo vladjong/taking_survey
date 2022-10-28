@@ -2,7 +2,6 @@ package workerpool
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -25,7 +24,7 @@ func StartWorkerpool() {
 	for i := 1; i <= viper.GetInt("cnt_workers"); i++ {
 		select {
 		case signal := <-sigs:
-			fmt.Println("\nSignal", signal, "received")
+			log.Printf("signal: %d received", signal)
 			cancel()
 			wg.Wait()
 			return
@@ -35,6 +34,7 @@ func StartWorkerpool() {
 				defer wg.Done()
 				worker := NewWorker(i)
 				if err := worker.work(ctx); err != nil {
+					cancel()
 					log.Fatal(err)
 				}
 				log.Printf("work done: %d", worker.ID)
