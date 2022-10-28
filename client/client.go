@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -25,9 +24,8 @@ type Client struct {
 	Headers        map[string]string
 }
 
-func NewClinet() *Client {
+func NewClinet(ctx context.Context) *Client {
 	cookieJar, _ := cookiejar.New(nil)
-	ctx := context.Background()
 	headers := make(map[string]string)
 	headers["Content-Type"] = "application/x-www-form-urlencoded"
 	return &Client{
@@ -38,28 +36,26 @@ func NewClinet() *Client {
 	}
 }
 
-func (c *Client) Run() {
-	client := NewClinet()
-	_, cookies, err := client.getPage(http.MethodGet, viper.GetString("url"), nil, viper.GetInt("timeout"))
+func (c *Client) Run() error {
+	_, cookies, err := c.getPage(http.MethodGet, viper.GetString("url"), nil, viper.GetInt("timeout"))
 	if err != nil {
-		log.Fatalf("error get first link: %s", err.Error())
+		return fmt.Errorf("error: %s", err.Error())
 	}
-	client.Cookies = cookies
-	doc, _, err := client.getPage(http.MethodGet, client.getLink(), nil, viper.GetInt("timeout"))
+	c.Cookies = cookies
+	doc, _, err := c.getPage(http.MethodGet, c.getLink(), nil, viper.GetInt("timeout"))
 	if err != nil {
-		log.Fatalf("error: %s", err.Error())
+		return fmt.Errorf("error: %s", err.Error())
 	}
 	for {
-		formDatas := client.parseForm(doc)
-		doc, _, err = client.getPage(http.MethodPost, client.getLink(), formDatas, viper.GetInt("timeout"))
+		formDatas := c.parseForm(doc)
+		doc, _, err = c.getPage(http.MethodPost, c.getLink(), formDatas, viper.GetInt("timeout"))
 		if err != nil {
-			log.Fatalf("error: %s", err.Error())
+			return fmt.Errorf("error: %s", err.Error())
 		}
 		if strings.Contains(doc.Text(), "Test successfully passed") {
-			fmt.Println("ПРОШЕЛ ТЕСТ")
-			return
+			return nil
 		}
-		client.NumberQuestion += 1
+		c.NumberQuestion += 1
 	}
 }
 
