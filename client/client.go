@@ -39,18 +39,18 @@ func NewClinet(ctx context.Context) *Client {
 func (c *Client) Run() error {
 	_, cookies, err := c.getPage(http.MethodGet, viper.GetString("url"), nil, viper.GetInt("timeout"))
 	if err != nil {
-		return fmt.Errorf("error: %s", err.Error())
+		return fmt.Errorf("%s", err.Error())
 	}
 	c.Cookies = cookies
 	doc, _, err := c.getPage(http.MethodGet, c.getLink(), nil, viper.GetInt("timeout"))
 	if err != nil {
-		return fmt.Errorf("error: %s", err.Error())
+		return fmt.Errorf("%s", err.Error())
 	}
 	for {
 		formDatas := c.parseForm(doc)
 		doc, _, err = c.getPage(http.MethodPost, c.getLink(), formDatas, viper.GetInt("timeout"))
 		if err != nil {
-			return fmt.Errorf("error: %s", err.Error())
+			return fmt.Errorf("%s", err.Error())
 		}
 		if strings.Contains(doc.Text(), "Test successfully passed") {
 			return nil
@@ -160,6 +160,9 @@ func (c *Client) getPage(method, siteURL string, formDatas map[string]string, ti
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse html: %w", err)
+	}
+	if resp.StatusCode != 200 {
+		return nil, nil, fmt.Errorf("failed to connect: %w", err)
 	}
 	return doc, resp.Cookies(), nil
 }

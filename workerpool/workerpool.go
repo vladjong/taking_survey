@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	"github.com/spf13/viper"
 )
@@ -12,18 +15,32 @@ import (
 func StartWorkerpool() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
 	wg := &sync.WaitGroup{}
-	fmt.Println("Start")
-	for i := 0; i <= viper.GetInt("cnt_workers"); i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			worker := NewWorker(i)
-			if err := worker.work(ctx); err != nil {
-				log.Fatal(err)
-			}
-			log.Printf("work done: %d", worker.ID)
-		}()
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	log.Println("workerpool start")
+	for i := 1; i <= viper.GetInt("cnt_workers"); i++ {
+		select {
+		case signal := <-sigs:
+			fmt.Println("\nSignal", signal, "received")
+			cancel()
+			wg.Wait()
+			return
+		default:
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				worker := NewWorker(i)
+				if err := worker.work(ctx); err != nil {
+					log.Fatal(err)
+				}
+				log.Printf("work done: %d", worker.ID)
+			}(i)
+		}
 	}
-	fmt.Println("END")
+	wg.Wait()
+	log.Println("workerpool end")
 }

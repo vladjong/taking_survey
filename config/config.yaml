@@ -1,4 +1,4 @@
 url: "http://185.204.3.165"
 timeout: 10
 cnt_workers: 10
- 
+rps: 10
