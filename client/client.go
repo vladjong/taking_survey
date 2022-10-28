@@ -13,7 +13,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/spf13/viper"
-	"github.com/vladjong/taking_survey/config"
 	"golang.org/x/time/rate"
 )
 
@@ -63,7 +62,7 @@ func (c *Client) Run() error {
 }
 
 func (c *Client) getPath() string {
-	return config.Link + strconv.Itoa(c.NumberQuestion)
+	return viper.GetString("link") + strconv.Itoa(c.NumberQuestion)
 }
 
 func (c *Client) getLink() string {
@@ -126,8 +125,8 @@ func (c *Client) getPage(method, siteURL string, formDatas map[string]string, ti
 	body := io.Reader(nil)
 	if len(formDatas) > 0 {
 		form := url.Values{}
-		for k, v := range formDatas {
-			form.Add(k, v)
+		for key, val := range formDatas {
+			form.Add(key, val)
 		}
 		body = strings.NewReader(form.Encode())
 	}
@@ -136,13 +135,13 @@ func (c *Client) getPage(method, siteURL string, formDatas map[string]string, ti
 		return nil, nil, fmt.Errorf("failed to create http request context: %w", err)
 	}
 	if len(c.Headers) > 0 {
-		for k, v := range c.Headers {
-			req.Header.Add(k, v)
+		for key, val := range c.Headers {
+			req.Header.Add(key, val)
 		}
 	}
 	if len(c.Cookies) > 0 {
-		for _, c := range c.Cookies {
-			req.AddCookie(c)
+		for _, val := range c.Cookies {
+			req.AddCookie(val)
 		}
 	}
 	reqTimeout := 10 * time.Second

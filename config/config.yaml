@@ -1,4 +1,5 @@
 url: "http://185.204.3.165"
+link: "/question/"
 timeout: 10
-cnt_workers: 10
+cnt_workers: 5
 rps: 10

@@ -14,12 +14,9 @@ import (
 func StartWorkerpool() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
 	wg := &sync.WaitGroup{}
-
 	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
+	signal.Notify(sigs, syscall.SIGINT)
 	log.Println("workerpool start")
 	for i := 1; i <= viper.GetInt("cnt_workers"); i++ {
 		select {
