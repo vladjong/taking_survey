@@ -18,7 +18,7 @@ func NewWorker(ID int) *worker {
 }
 
 func (w *worker) work(ctx context.Context) error {
-	client := client.NewClinet(context.Background())
+	client := client.NewClinet(ctx)
 	if err := client.Run(); err != nil {
 		return fmt.Errorf("error: %s worker id: %d", err.Error(), w.ID)
 	}
